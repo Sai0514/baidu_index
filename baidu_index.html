@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        html,
+        body,
+        div,
+        input {
+            margin: 0;
+            padding: 0;
+        }
+        
+        input,
+        button {
+            outline: 0;
+        }
+        
+        .page-container {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        #form {
+            display: flex;
+            justify-content: center;
+            align-items: stretch;
+        }
+        
+        .keyword {
+            display: inline-block;
+            vertical-align: top;
+            width: 536px;
+            height: 34px;
+            font-size: 15px;
+            border: 1px solid #3385ff;
+            margin-right: 0;
+        }
+        
+        .submit {
+            display: inline-block;
+            width: 100px;
+            height: 36px;
+            font-size: 15px;
+            outline: medium;
+            color: #fff;
+            background-color: #3385ff;
+            border: 1px solid #3385ff;
+            cursor: pointer;
+        }
+        
+        #description {
+            position: absolute;
+            top: 36px;
+            left: 0;
+            width: 536px;
+            height: auto;
+            border: 1px solod #ccc;
+            border-top: none;
+            box-shadow: 1px 2px 2px rgba(5, 5, 5, 0.1);
+            z-index: 100;
+            display: none;
+        }
+        
+        #description span {
+            display: block;
+            clear: both;
+            width: 536;
+            height: 30px;
+            text-indent: 15px;
+            line-height: 30px;
+            background-color: rgba(255, 255, 255, 0.3);
+            cursor: default;
+        }
+        
+        #description span:hover {
+            cursor: default;
+            background-color: rgba(0, 0, 0, 0.3);
+        }
+    </style>
+    <script src="http://cdn.static.runoob.com/libs/jquery/1.10.2/jquery.min.js"></script>
+</head>
+
+<body>
+    <div id="page" class="page-container">
+        <form id="form" action="http://www.baidu.com/s" method="GET" name="fm" class="fm">
+            <input class="keyword" type="text" name="wd" maxlength="255" autofocus autocomplete="off" />
+            <input class="submit" type="submit" value="百度一下" />
+        </form>
+        <div id="description"></div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            /*----------------- 监听输入框keyup事件 ---------------------*/
+            var input = $('#form .keyword')
+            var text = '';
+
+            input.keyup(function(e) {
+                text = input.val();
+
+                if (text == '') {
+                    return
+                }
+
+                let which = e.which
+                if (which != 39 && which != 40 && which != 37 && which != 38 && which != 13) {
+                    $.ajax({
+                        url: 'https://sp0.baidu.com/5a1Fazu8AA54nxGko9WTAnF6hhy/su',
+                        method: 'GET',
+                        dataType: 'jsonp',
+                        jsonp: 'callback',
+                        async: false,
+                        timeout: 5000,
+                        data: {
+                            "wd": encodeURI(text),
+                            "cb": "getList"
+                        },
+                        success: function(json) {
+
+                        },
+                        error: function(xhr) {
+                            return
+                        }
+                    })
+                }
+            });
+
+        });
+
+        /*----------------- 获取关键词描述 ---------------------*/
+        function getList(data) {
+            var $input = $('#form .keyword');
+            var $submit = $('#form .submit');
+            var $div = $('#description');
+
+            writeSpans();
+
+            /*----------------- 对关键词进行写入---------------------*/
+            function writeSpans() {
+                let len2 = data.s.length;
+                if (len2 == 0) {
+                    getStyle('hide');
+                } else {
+                    getStyle('show');
+                }
+                // 写入span标签 
+                let spans = "";
+                for (let i = 0; i < len2; i++) {
+                    spans += "<span>" + data.s[i] + "</span>"
+                }
+                $div.html(spans);
+                $div.animate({
+                    height: ($div.children().height() + 1) * len2 //关键词下滑效果
+                }, 100);
+                eventEmitter(len2);
+            }
+
+            /*----------------- 对事件进行处理 ---------------------*/
+            function eventEmitter(len) {
+                let length = len;
+                // 点击提交
+                $div.children().click(function() {
+                    $input.val($(this).html());
+                    getStyle('hide');
+                    $input.focus();
+                    $submit.submit();
+                });
+
+                // 点击隐藏
+                $submit.focus(function() {
+                    getStyle('hide');
+                });
+                $div.mouseleave(function() {
+                    getStyle('hide');
+                });
+
+                var numspan = 0; //指定选择候选词
+                $input.keydown(function(event) {
+                    // 回车提交
+                    if (event.which == 13) {
+                        getStyle('hide');
+                    }
+                    // 下
+                    if (event.which == 40) {
+                        if (numspan == length)
+                            numspan = 0;
+                        for (var i = 0; i < length; i++) {
+                            if (numspan == i) {
+                                active(i);
+                            } else {
+                                defaut(i);
+                            }
+                        }
+                        $input.val($div.children().eq(numspan).html());
+                        numspan++;
+                    }
+                    // 上
+                    if (event.which == 38) {
+                        numspan--;
+                        if (numspan == length)
+                            numspan = 0;
+                        for (var i = 0; i < length; i++) {
+                            if (numspan == i) {
+                                active(i);
+                            } else {
+                                defaut(i);
+                            }
+                        }
+                        $input.val($div.children().eq(numspan).html())
+                    };
+                });
+
+                $div.children().mouseover(function() {
+                    numspan = $(this).index();
+                    for (var i = 0; i < length; i++) {
+                        if (numspan == i) {
+                            active(i);
+                        } else {
+                            defaut(i);
+                        }
+                    }
+                    $input.val($div.children().eq(numspan).html());
+                });
+            }
+
+            /*----------------- 列表显隐 ---------------------*/
+            function getStyle(str) {
+                switch (str) {
+                    case 'show':
+                        show();
+                        break;
+                    case 'hide':
+                        hide();
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            function show() {
+                $div.css({
+                    "display": "block"
+                });
+            }
+
+            function hide() {
+                $div.animate({
+                    height: 0
+                }, 10, function() {
+                    $div.css({
+                        "display": "none",
+                        "height": "auto"
+                    });
+                    $div.empty(); //清空盒子内容
+                });
+            }
+
+            function active(i) {
+                $div.children().eq(i).css({
+                    "background-color": "rgba(0,0,0,0.3)"
+                });
+            }
+
+            function defaut(i) {
+                $div.children().eq(i).css({
+                    "background-color": "rgba(255,255,255,0.3)"
+                });
+            }
+        }
+    </script>
+</body>
+
+</html>
